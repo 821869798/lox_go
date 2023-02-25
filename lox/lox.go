@@ -10,6 +10,17 @@ var hadError = false
 
 func run(source string) {
 	fmt.Println("run:" + source)
+
+	scanner := NewScanner(source)
+	tokens := scanner.scanTokens()
+
+	parser := NewParse(tokens)
+	expression := parser.parse()
+	if hadError {
+		return
+	}
+
+	NewAstPrinter().print(expression)
 }
 
 func RunFile(filename string) {
@@ -41,6 +52,14 @@ func RunPrompt() {
 
 func reportError(line int, message string) {
 	report(line, "", message)
+}
+
+func reportErrorToken(token *Token, message string) {
+	if token.tokenType == TokenType_EOF {
+		report(token.line, " at end", message)
+	} else {
+		report(token.line, " at '"+token.lexeme+"'", message)
+	}
 }
 
 func report(line int, where string, message string) {

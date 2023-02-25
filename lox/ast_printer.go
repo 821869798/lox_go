@@ -104,6 +104,8 @@ func GetInterfaceToString(value interface{}) string {
 		key = strings.Replace(key, " +0000 UTC", "", 1)
 	case []byte:
 		key = string(value.([]byte))
+	case nil:
+		key = "nil"
 	default:
 		newValue, _ := json.Marshal(value)
 		key = string(newValue)
