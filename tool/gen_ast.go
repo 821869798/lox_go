@@ -18,10 +18,18 @@ func main() {
 
 	outputDir := args[1]
 	defineAst(outputDir, "Expr", []string{
+		"Assign   : name *Token, value Expr",
 		"Binary   : left Expr, operator *Token, right Expr",
 		"Grouping : expression Expr",
 		"Literal  : value interface{}",
 		"Unary    : operator *Token, right Expr",
+		"Variable : name *Token",
+	})
+
+	defineAst(outputDir, "Stmt", []string{
+		"Expression : expression Expr",
+		"Print      : expression Expr",
+		"VarStmt    : name *Token, initializer Expr",
 	})
 }
 
@@ -68,7 +76,7 @@ func defineType(f *os.File, baseName string, className string, fieldList string)
 }
 
 func defineVisitor(f *os.File, baseName string, exprTypes []string) {
-	f.WriteString("type Visitor interface{\n")
+	f.WriteString(fmt.Sprintf("type %sVisitor interface{\n", baseName))
 
 	for _, exprType := range exprTypes {
 		exprStrs := strings.Split(exprType, ":")
@@ -78,7 +86,7 @@ func defineVisitor(f *os.File, baseName string, exprTypes []string) {
 
 	f.WriteString("}\n\n")
 	varName := strings.ToLower(baseName)[:1]
-	f.WriteString(fmt.Sprintf("func Visitor%s(v Visitor,%s %s){\n", baseName, varName, baseName))
+	f.WriteString(fmt.Sprintf("func Visitor%s(v %sVisitor,%s %s){\n", baseName, baseName, varName, baseName))
 	f.WriteString(fmt.Sprintf("\tswitch %s.(type){\n", varName))
 
 	for _, exprType := range exprTypes {
@@ -92,7 +100,7 @@ func defineVisitor(f *os.File, baseName string, exprTypes []string) {
 	f.WriteString("}\n\n")
 
 	//添加带泛型的Visitor
-	f.WriteString("type VisitorWithVal[T any] interface{\n")
+	f.WriteString(fmt.Sprintf("type %sVisitorWithVal[T any] interface{\n", baseName))
 
 	for _, exprType := range exprTypes {
 		exprStrs := strings.Split(exprType, ":")
@@ -101,7 +109,7 @@ func defineVisitor(f *os.File, baseName string, exprTypes []string) {
 	}
 
 	f.WriteString("}\n\n")
-	f.WriteString(fmt.Sprintf("func Visitor%sWithVal[T any](v VisitorWithVal[T],%s %s) T{\n", baseName, varName, baseName))
+	f.WriteString(fmt.Sprintf("func Visitor%sWithVal[T any](v %sVisitorWithVal[T],%s %s) T{\n", baseName, baseName, varName, baseName))
 	f.WriteString(fmt.Sprintf("\tswitch %s.(type){\n", varName))
 
 	for _, exprType := range exprTypes {

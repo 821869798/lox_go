@@ -1,7 +1,6 @@
 package lox
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -128,17 +127,14 @@ func (s *Scanner) scanToken() {
 	case ' ', '\r', '\t':
 	// Ignore whitespace.
 	case '"':
-		err := s.string()
-		if err != nil {
-			panic(err)
-		}
+		s.string()
 	default:
 		if s.isDigit(c) {
 			s.number()
 		} else if s.isAlpha(c) {
 			s.identifier()
 		} else {
-			panic(fmt.Sprintf("[%d]Unexpected character.", s.line))
+			reportError(s.line, "Unexpected character.")
 		}
 	}
 }
@@ -179,7 +175,7 @@ func (s *Scanner) match(expected uint8) bool {
 	return true
 }
 
-func (s *Scanner) string() error {
+func (s *Scanner) string() {
 	for s.peek() != '"' && !s.isAtEnd() {
 		if s.peek() == '\n' {
 			s.line++
@@ -188,7 +184,8 @@ func (s *Scanner) string() error {
 	}
 
 	if s.isAtEnd() {
-		return fmt.Errorf("[%d]Unterminated string", s.line)
+		reportError(s.line, "Unterminated string.")
+		return
 	}
 
 	// The closing ".
@@ -197,7 +194,6 @@ func (s *Scanner) string() error {
 	// Trim the surrounding quotes.
 	value := s.source[s.start+1 : s.current-1]
 	s.addToken(TokenType_STRING, value)
-	return nil
 }
 
 func (s *Scanner) isDigit(c uint8) bool {

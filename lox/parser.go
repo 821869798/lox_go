@@ -13,12 +13,83 @@ func NewParse(tokens []*Token) *Parser {
 	return p
 }
 
-func (p *Parser) parse() Expr {
-	return p.expression()
+func (p *Parser) parse() []Stmt {
+	defer func() {
+		if err := recover(); err != nil {
+			//v, ok := err.(*RuntimeError)
+			//if ok {
+			//	reportRuntimeError(v)
+			//} else {
+			//	panic(err)
+			//}
+		}
+	}()
+	statements := make([]Stmt, 0, 8)
+	for !p.isAtEnd() {
+		statements = append(statements, p.declaration())
+	}
+	return statements
+}
+
+func (p *Parser) declaration() Stmt {
+	if p.match(TokenType_VAR) {
+		return p.varDeclaration()
+	}
+
+	return p.statement()
+}
+
+func (p *Parser) statement() Stmt {
+	if p.match(TokenType_PRINT) {
+		return p.printStatement()
+	}
+	return p.expressionStatement()
+}
+
+func (p *Parser) printStatement() Stmt {
+	value := p.expression()
+	p.consume(TokenType_SEMICOLON, "Expect ';' after value.")
+	return NewPrint(value)
+}
+
+func (p *Parser) varDeclaration() Stmt {
+	name := p.consume(TokenType_IDENTIFIER, "Expect variable name.")
+
+	var initializer Expr = nil
+	if p.match(TokenType_EQUAL) {
+		initializer = p.expression()
+	}
+	p.consume(TokenType_SEMICOLON, "Expect ';' after variable declaration.")
+
+	return NewVarStmt(name, initializer)
+}
+
+func (p *Parser) expressionStatement() Stmt {
+	expr := p.expression()
+	p.consume(TokenType_SEMICOLON, "Expect ';' after expression.")
+	return NewExpression(expr)
+}
+
+func (p *Parser) assignment() Expr {
+	expr := p.equality()
+	if p.match(TokenType_EQUAL) {
+		equals := p.previous()
+		value := p.assignment()
+
+		variable, ok := expr.(*Variable)
+		if ok {
+			name := variable.name
+			return NewAssign(name, value)
+		}
+
+		reportErrorToken(equals, "Invalid assignment target.")
+	}
+
+	return expr
 }
 
 func (p *Parser) expression() Expr {
-	return p.equality()
+	return p.assignment()
 }
 
 func (p *Parser) equality() Expr {
@@ -124,6 +195,10 @@ func (p *Parser) primary() Expr {
 		return NewLiteral(p.previous().literal)
 	}
 
+	if p.match(TokenType_IDENTIFIER) {
+		return NewVariable(p.previous())
+	}
+
 	if p.match(TokenType_LEFT_PAREN) {
 		expr := p.expression()
 		p.consume(TokenType_RIGHT_PAREN, "Expect ')' after expression.")
@@ -159,5 +234,4 @@ func (p *Parser) synchronize() {
 
 		p.advance()
 	}
-
 }

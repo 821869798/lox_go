@@ -3,6 +3,19 @@ package lox
 type Expr interface {
 }
 
+type Assign struct{
+	name *Token
+	value Expr
+}
+
+func NewAssign(name *Token, value Expr)*Assign{
+	a := &Assign{
+		name: name,
+		value: value,
+	}
+	return a
+}
+
 type Binary struct{
 	left Expr
 	operator *Token
@@ -53,15 +66,30 @@ func NewUnary(operator *Token, right Expr)*Unary{
 	return u
 }
 
-type Visitor interface{
+type Variable struct{
+	name *Token
+}
+
+func NewVariable(name *Token)*Variable{
+	v := &Variable{
+		name: name,
+	}
+	return v
+}
+
+type ExprVisitor interface{
+	VisitAssignExpr(assign *Assign)
 	VisitBinaryExpr(binary *Binary)
 	VisitGroupingExpr(grouping *Grouping)
 	VisitLiteralExpr(literal *Literal)
 	VisitUnaryExpr(unary *Unary)
+	VisitVariableExpr(variable *Variable)
 }
 
-func VisitorExpr(v Visitor,e Expr){
+func VisitorExpr(v ExprVisitor,e Expr){
 	switch e.(type){
+	case *Assign:
+		v.VisitAssignExpr(e.(*Assign))
 	case *Binary:
 		v.VisitBinaryExpr(e.(*Binary))
 	case *Grouping:
@@ -70,18 +98,24 @@ func VisitorExpr(v Visitor,e Expr){
 		v.VisitLiteralExpr(e.(*Literal))
 	case *Unary:
 		v.VisitUnaryExpr(e.(*Unary))
+	case *Variable:
+		v.VisitVariableExpr(e.(*Variable))
 	}
 }
 
-type VisitorWithVal[T any] interface{
+type ExprVisitorWithVal[T any] interface{
+	VisitAssignExpr(assign *Assign) T
 	VisitBinaryExpr(binary *Binary) T
 	VisitGroupingExpr(grouping *Grouping) T
 	VisitLiteralExpr(literal *Literal) T
 	VisitUnaryExpr(unary *Unary) T
+	VisitVariableExpr(variable *Variable) T
 }
 
-func VisitorExprWithVal[T any](v VisitorWithVal[T],e Expr) T{
+func VisitorExprWithVal[T any](v ExprVisitorWithVal[T],e Expr) T{
 	switch e.(type){
+	case *Assign:
+		return v.VisitAssignExpr(e.(*Assign))
 	case *Binary:
 		return v.VisitBinaryExpr(e.(*Binary))
 	case *Grouping:
@@ -90,6 +124,8 @@ func VisitorExprWithVal[T any](v VisitorWithVal[T],e Expr) T{
 		return v.VisitLiteralExpr(e.(*Literal))
 	case *Unary:
 		return v.VisitUnaryExpr(e.(*Unary))
+	case *Variable:
+		return v.VisitVariableExpr(e.(*Variable))
 	default:
 		panic("can't find Expr")
 	}

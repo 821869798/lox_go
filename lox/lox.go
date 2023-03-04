@@ -1,52 +1,63 @@
 package lox
 
 import (
+	"bufio"
 	"fmt"
+	log "github.com/FishGoddess/logit"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 var hadError = false
+var hadRuntimeError = false
 
 func run(source string) {
-	fmt.Println("run:" + source)
+	log.Debug("run:" + source)
 
 	scanner := NewScanner(source)
 	tokens := scanner.scanTokens()
 
 	parser := NewParse(tokens)
-	expression := parser.parse()
+	statements := parser.parse()
 	if hadError {
 		return
 	}
 
-	NewAstPrinter().print(expression)
+	NewInterpreter().interpret(statements)
 }
 
 func RunFile(filename string) {
 	code, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Printf("Error reading file: %s\n", filename)
+		log.Info("Error reading file: %s\n", filename)
 		return
 	}
+
 	run(string(code))
 
 	if hadError {
 		os.Exit(65)
 	}
+
+	if hadRuntimeError {
+		os.Exit(70)
+	}
 }
 
 func RunPrompt() {
+	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
-		var line string
-		_, err := fmt.Scanln(&line)
+		input, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println(err)
+			log.Error("input error:%v", err)
 			break
 		}
-		run(line)
+		code := strings.TrimRight(input, "\n")
+		run(code)
 		hadError = false
+		fmt.Print("\n")
 	}
 }
 
@@ -63,6 +74,11 @@ func reportErrorToken(token *Token, message string) {
 }
 
 func report(line int, where string, message string) {
-	fmt.Printf("<error>[line %d] Error%s: %s\n", line, where, message)
+	log.Error("<error>[line %d] Error%s: %s", line, where, message)
 	hadError = true
+}
+
+func reportRuntimeError(err *RuntimeError) {
+	log.Error(err.Error())
+	hadRuntimeError = true
 }
