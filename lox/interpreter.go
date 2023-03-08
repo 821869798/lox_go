@@ -11,16 +11,12 @@ type Interpreter struct {
 
 func NewInterpreter() *Interpreter {
 	i := &Interpreter{
-		env: NewEnvironment(),
+		env: NewEnvironment(nil),
 	}
 	return i
 }
 
 func (i *Interpreter) interpret(statements []Stmt) {
-
-	for _, statement := range statements {
-		i.execute(statement)
-	}
 	defer func() {
 		if err := recover(); err != nil {
 			v, ok := err.(*RuntimeError)
@@ -31,10 +27,30 @@ func (i *Interpreter) interpret(statements []Stmt) {
 			}
 		}
 	}()
+
+	for _, statement := range statements {
+		i.execute(statement)
+	}
 }
 
 func (i *Interpreter) execute(stmt Stmt) {
 	VisitorStmt(i, stmt)
+}
+
+func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) {
+	previous := i.env
+	defer func() {
+		i.env = previous
+	}()
+
+	i.env = environment
+	for _, statement := range statements {
+		i.execute(statement)
+	}
+}
+
+func (i *Interpreter) VisitBlockStmt(stmt *Block) {
+	i.executeBlock(stmt.statements, NewEnvironment(i.env))
 }
 
 func (i *Interpreter) VisitExpressionStmt(stmt *Expression) {
@@ -49,7 +65,7 @@ func (i *Interpreter) VisitPrintStmt(stmt *Print) {
 func (i *Interpreter) VisitVarStmtStmt(stmt *VarStmt) {
 	var value interface{} = nil
 	if stmt.initializer != nil {
-		value = i.evaluate(stmt)
+		value = i.evaluate(stmt.initializer)
 	}
 	i.env.define(stmt.name.lexeme, value)
 }

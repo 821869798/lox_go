@@ -24,7 +24,7 @@ func (p *Parser) parse() []Stmt {
 			//}
 		}
 	}()
-	statements := make([]Stmt, 0, 8)
+	statements := make([]Stmt, 0, 4)
 	for !p.isAtEnd() {
 		statements = append(statements, p.declaration())
 	}
@@ -42,6 +42,9 @@ func (p *Parser) declaration() Stmt {
 func (p *Parser) statement() Stmt {
 	if p.match(TokenType_PRINT) {
 		return p.printStatement()
+	}
+	if p.match(TokenType_LEFT_BRACE) {
+		return NewBlock(p.block())
 	}
 	return p.expressionStatement()
 }
@@ -68,6 +71,16 @@ func (p *Parser) expressionStatement() Stmt {
 	expr := p.expression()
 	p.consume(TokenType_SEMICOLON, "Expect ';' after expression.")
 	return NewExpression(expr)
+}
+
+func (p *Parser) block() []Stmt {
+	statements := make([]Stmt, 0, 4)
+	for !p.check(TokenType_RIGHT_BRACE) && !p.isAtEnd() {
+		statements = append(statements, p.declaration())
+	}
+
+	p.consume(TokenType_RIGHT_BRACE, "Expect '}' after block.")
+	return statements
 }
 
 func (p *Parser) assignment() Expr {

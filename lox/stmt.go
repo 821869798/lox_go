@@ -3,6 +3,17 @@ package lox
 type Stmt interface {
 }
 
+type Block struct{
+	statements []Stmt
+}
+
+func NewBlock(statements []Stmt)*Block{
+	b := &Block{
+		statements: statements,
+	}
+	return b
+}
+
 type Expression struct{
 	expression Expr
 }
@@ -39,6 +50,7 @@ func NewVarStmt(name *Token, initializer Expr)*VarStmt{
 }
 
 type StmtVisitor interface{
+	VisitBlockStmt(block *Block)
 	VisitExpressionStmt(expression *Expression)
 	VisitPrintStmt(print *Print)
 	VisitVarStmtStmt(varstmt *VarStmt)
@@ -46,6 +58,8 @@ type StmtVisitor interface{
 
 func VisitorStmt(v StmtVisitor,s Stmt){
 	switch s.(type){
+	case *Block:
+		v.VisitBlockStmt(s.(*Block))
 	case *Expression:
 		v.VisitExpressionStmt(s.(*Expression))
 	case *Print:
@@ -56,6 +70,7 @@ func VisitorStmt(v StmtVisitor,s Stmt){
 }
 
 type StmtVisitorWithVal[T any] interface{
+	VisitBlockStmt(block *Block) T
 	VisitExpressionStmt(expression *Expression) T
 	VisitPrintStmt(print *Print) T
 	VisitVarStmtStmt(varstmt *VarStmt) T
@@ -63,6 +78,8 @@ type StmtVisitorWithVal[T any] interface{
 
 func VisitorStmtWithVal[T any](v StmtVisitorWithVal[T],s Stmt) T{
 	switch s.(type){
+	case *Block:
+		return v.VisitBlockStmt(s.(*Block))
 	case *Expression:
 		return v.VisitExpressionStmt(s.(*Expression))
 	case *Print:

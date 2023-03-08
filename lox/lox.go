@@ -12,9 +12,10 @@ import (
 var hadError = false
 var hadRuntimeError = false
 
-func run(source string) {
-	log.Debug("run:" + source)
+var interpreter = NewInterpreter()
 
+func run(source string) {
+	
 	scanner := NewScanner(source)
 	tokens := scanner.scanTokens()
 
@@ -24,13 +25,13 @@ func run(source string) {
 		return
 	}
 
-	NewInterpreter().interpret(statements)
+	interpreter.interpret(statements)
 }
 
 func RunFile(filename string) {
 	code, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Info("Error reading file: %s\n", filename)
+		log.Info("Error reading file: %s", filename)
 		return
 	}
 
