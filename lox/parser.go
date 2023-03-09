@@ -40,19 +40,91 @@ func (p *Parser) declaration() Stmt {
 }
 
 func (p *Parser) statement() Stmt {
+
+	if p.match(TokenType_FOR) {
+		return p.forStatement()
+	}
+
+	if p.match(TokenType_IF) {
+		return p.ifStatement()
+	}
+
 	if p.match(TokenType_PRINT) {
 		return p.printStatement()
 	}
+
+	if p.match(TokenType_WHILE) {
+		return p.whileStatement()
+	}
+
 	if p.match(TokenType_LEFT_BRACE) {
-		return NewBlock(p.block())
+		return NewBlockStmt(p.block())
 	}
 	return p.expressionStatement()
+}
+
+func (p *Parser) forStatement() Stmt {
+	p.consume(TokenType_LEFT_PAREN, "Expect '(' after 'for'.")
+	var initializer Stmt
+	if p.match(TokenType_SEMICOLON) {
+		initializer = nil
+	} else if p.match(TokenType_VAR) {
+		initializer = p.varDeclaration()
+	} else {
+		initializer = p.expressionStatement()
+	}
+
+	var condition Expr = nil
+	if !p.check(TokenType_SEMICOLON) {
+		condition = p.expression()
+	}
+	p.consume(TokenType_SEMICOLON, "Expect ';' after loop condition.")
+
+	var increment Expr = nil
+	if !p.check(TokenType_RIGHT_PAREN) {
+		increment = p.expression()
+	}
+
+	p.consume(TokenType_RIGHT_PAREN, "Expect ')' after for clauses.")
+
+	body := p.statement()
+
+	if increment != nil {
+		body = NewBlockStmt([]Stmt{body, NewExpressionStmt(increment)})
+	}
+
+	if condition == nil {
+		condition = NewLiteralExpr(true)
+	}
+
+	body = NewWhileStmt(condition, body)
+
+	if initializer != nil {
+		body = NewBlockStmt([]Stmt{initializer, body})
+	}
+
+	return body
+
+}
+
+func (p *Parser) ifStatement() Stmt {
+	p.consume(TokenType_LEFT_PAREN, "Expect '(' after 'if'.")
+	condition := p.expression()
+	p.consume(TokenType_RIGHT_PAREN, "Expect ')' after if condition.")
+
+	thenBranch := p.statement()
+	var elseBranch Stmt = nil
+	if p.match(TokenType_ELSE) {
+		elseBranch = p.statement()
+	}
+
+	return NewIfStmt(condition, thenBranch, elseBranch)
 }
 
 func (p *Parser) printStatement() Stmt {
 	value := p.expression()
 	p.consume(TokenType_SEMICOLON, "Expect ';' after value.")
-	return NewPrint(value)
+	return NewPrintStmt(value)
 }
 
 func (p *Parser) varDeclaration() Stmt {
@@ -67,10 +139,18 @@ func (p *Parser) varDeclaration() Stmt {
 	return NewVarStmt(name, initializer)
 }
 
+func (p *Parser) whileStatement() Stmt {
+	p.consume(TokenType_LEFT_PAREN, "Expect '(' after 'while'.")
+	condition := p.expression()
+	p.consume(TokenType_RIGHT_PAREN, "Expect ')' after condition.")
+	body := p.statement()
+	return NewWhileStmt(condition, body)
+}
+
 func (p *Parser) expressionStatement() Stmt {
 	expr := p.expression()
 	p.consume(TokenType_SEMICOLON, "Expect ';' after expression.")
-	return NewExpression(expr)
+	return NewExpressionStmt(expr)
 }
 
 func (p *Parser) block() []Stmt {
@@ -84,18 +164,42 @@ func (p *Parser) block() []Stmt {
 }
 
 func (p *Parser) assignment() Expr {
-	expr := p.equality()
+	expr := p.or()
+
 	if p.match(TokenType_EQUAL) {
 		equals := p.previous()
 		value := p.assignment()
 
-		variable, ok := expr.(*Variable)
+		variable, ok := expr.(*VariableExpr)
 		if ok {
 			name := variable.name
-			return NewAssign(name, value)
+			return NewAssignExpr(name, value)
 		}
 
 		reportErrorToken(equals, "Invalid assignment target.")
+	}
+
+	return expr
+}
+
+func (p *Parser) or() Expr {
+	expr := p.and()
+
+	for p.match(TokenType_OR) {
+		operator := p.previous()
+		right := p.and()
+		expr = NewLogicalExpr(expr, operator, right)
+	}
+	return expr
+}
+
+func (p *Parser) and() Expr {
+	expr := p.equality()
+
+	for p.match(TokenType_AND) {
+		operator := p.previous()
+		right := p.equality()
+		expr = NewLogicalExpr(expr, operator, right)
 	}
 
 	return expr
@@ -111,7 +215,7 @@ func (p *Parser) equality() Expr {
 	for p.match(TokenType_BANG_EQUAL, TokenType_EQUAL_EQUAL) {
 		operator := p.previous()
 		right := p.comparison()
-		expr = NewBinary(expr, operator, right)
+		expr = NewBinaryExpr(expr, operator, right)
 	}
 	return expr
 }
@@ -121,7 +225,7 @@ func (p *Parser) comparison() Expr {
 	for p.match(TokenType_GREATER, TokenType_GREATER_EQUAL, TokenType_LESS, TokenType_LESS_EQUAL) {
 		operator := p.previous()
 		right := p.term()
-		expr = NewBinary(expr, operator, right)
+		expr = NewBinaryExpr(expr, operator, right)
 	}
 	return expr
 }
@@ -168,7 +272,7 @@ func (p *Parser) term() Expr {
 	for p.match(TokenType_MINUS, TokenType_PLUS) {
 		operator := p.previous()
 		right := p.factor()
-		expr = NewBinary(expr, operator, right)
+		expr = NewBinaryExpr(expr, operator, right)
 	}
 	return expr
 }
@@ -179,7 +283,7 @@ func (p *Parser) factor() Expr {
 	for p.match(TokenType_SLASH, TokenType_STAR) {
 		operator := p.previous()
 		right := p.unary()
-		expr = NewBinary(expr, operator, right)
+		expr = NewBinaryExpr(expr, operator, right)
 	}
 	return expr
 }
@@ -188,34 +292,34 @@ func (p *Parser) unary() Expr {
 	if p.match(TokenType_BANG, TokenType_MINUS) {
 		operator := p.previous()
 		right := p.unary()
-		return NewUnary(operator, right)
+		return NewUnaryExpr(operator, right)
 	}
 	return p.primary()
 }
 
 func (p *Parser) primary() Expr {
 	if p.match(TokenType_FALSE) {
-		return NewLiteral(false)
+		return NewLiteralExpr(false)
 	}
 	if p.match(TokenType_TRUE) {
-		return NewLiteral(true)
+		return NewLiteralExpr(true)
 	}
 	if p.match(TokenType_NIL) {
-		return NewLiteral(nil)
+		return NewLiteralExpr(nil)
 	}
 
 	if p.match(TokenType_NUMBER, TokenType_STRING) {
-		return NewLiteral(p.previous().literal)
+		return NewLiteralExpr(p.previous().literal)
 	}
 
 	if p.match(TokenType_IDENTIFIER) {
-		return NewVariable(p.previous())
+		return NewVariableExpr(p.previous())
 	}
 
 	if p.match(TokenType_LEFT_PAREN) {
 		expr := p.expression()
 		p.consume(TokenType_RIGHT_PAREN, "Expect ')' after expression.")
-		return NewGrouping(expr)
+		return NewGroupingExpr(expr)
 	}
 
 	message := "Expect expression."

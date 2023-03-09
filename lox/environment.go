@@ -31,7 +31,7 @@ func (e *Environment) get(name *Token) interface{} {
 }
 
 func (e *Environment) assign(name *Token, value interface{}) {
-	value, ok := e.values[name.lexeme]
+	_, ok := e.values[name.lexeme]
 	if ok {
 		e.values[name.lexeme] = value
 		return

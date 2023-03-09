@@ -193,6 +193,10 @@ func (s *Scanner) string() {
 
 	// Trim the surrounding quotes.
 	value := s.source[s.start+1 : s.current-1]
+	value, err := strconv.Unquote(`"` + value + `"`)
+	if err != nil {
+		reportError(s.line, "Unexpected string.")
+	}
 	s.addToken(TokenType_STRING, value)
 }
 

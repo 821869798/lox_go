@@ -15,7 +15,7 @@ var hadRuntimeError = false
 var interpreter = NewInterpreter()
 
 func run(source string) {
-	
+
 	scanner := NewScanner(source)
 	tokens := scanner.scanTokens()
 

@@ -17,30 +17,34 @@ func (a *AstPrinter) print(expr Expr) string {
 	return VisitorExprWithVal[string](a, expr)
 }
 
-func (a *AstPrinter) VisitBinaryExpr(expr *Binary) string {
+func (a *AstPrinter) VisitBinaryExpr(expr *BinaryExpr) string {
 	return a.parenthesize(expr.operator.lexeme, expr.left, expr.right)
 }
 
-func (a *AstPrinter) VisitGroupingExpr(grouping *Grouping) string {
+func (a *AstPrinter) VisitGroupingExpr(grouping *GroupingExpr) string {
 	return a.parenthesize("group", grouping.expression)
 }
 
-func (a *AstPrinter) VisitLiteralExpr(literal *Literal) string {
+func (a *AstPrinter) VisitLiteralExpr(literal *LiteralExpr) string {
 	if literal.value == nil {
 		return "nil"
 	}
 	return util.GetInterfaceToString(literal.value)
 }
 
-func (a *AstPrinter) VisitUnaryExpr(unary *Unary) string {
+func (a *AstPrinter) VisitLogicalExpr(expr *LogicalExpr) string {
+	return a.parenthesize(expr.operator.lexeme, expr.left, expr.right)
+}
+
+func (a *AstPrinter) VisitUnaryExpr(unary *UnaryExpr) string {
 	return a.parenthesize(unary.operator.lexeme, unary.right)
 }
 
-func (a *AstPrinter) VisitVariableExpr(variable *Variable) string {
+func (a *AstPrinter) VisitVariableExpr(variable *VariableExpr) string {
 	return variable.name.lexeme
 }
 
-func (a *AstPrinter) VisitAssignExpr(assign *Assign) string {
+func (a *AstPrinter) VisitAssignExpr(assign *AssignExpr) string {
 	return ""
 }
 

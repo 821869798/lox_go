@@ -3,27 +3,27 @@ package lox
 type Expr interface {
 }
 
-type Assign struct{
+type AssignExpr struct{
 	name *Token
 	value Expr
 }
 
-func NewAssign(name *Token, value Expr)*Assign{
-	a := &Assign{
+func NewAssignExpr(name *Token, value Expr)*AssignExpr{
+	a := &AssignExpr{
 		name: name,
 		value: value,
 	}
 	return a
 }
 
-type Binary struct{
+type BinaryExpr struct{
 	left Expr
 	operator *Token
 	right Expr
 }
 
-func NewBinary(left Expr, operator *Token, right Expr)*Binary{
-	b := &Binary{
+func NewBinaryExpr(left Expr, operator *Token, right Expr)*BinaryExpr{
+	b := &BinaryExpr{
 		left: left,
 		operator: operator,
 		right: right,
@@ -31,101 +31,122 @@ func NewBinary(left Expr, operator *Token, right Expr)*Binary{
 	return b
 }
 
-type Grouping struct{
+type GroupingExpr struct{
 	expression Expr
 }
 
-func NewGrouping(expression Expr)*Grouping{
-	g := &Grouping{
+func NewGroupingExpr(expression Expr)*GroupingExpr{
+	g := &GroupingExpr{
 		expression: expression,
 	}
 	return g
 }
 
-type Literal struct{
+type LiteralExpr struct{
 	value interface{}
 }
 
-func NewLiteral(value interface{})*Literal{
-	l := &Literal{
+func NewLiteralExpr(value interface{})*LiteralExpr{
+	l := &LiteralExpr{
 		value: value,
 	}
 	return l
 }
 
-type Unary struct{
+type LogicalExpr struct{
+	left Expr
 	operator *Token
 	right Expr
 }
 
-func NewUnary(operator *Token, right Expr)*Unary{
-	u := &Unary{
+func NewLogicalExpr(left Expr, operator *Token, right Expr)*LogicalExpr{
+	l := &LogicalExpr{
+		left: left,
+		operator: operator,
+		right: right,
+	}
+	return l
+}
+
+type UnaryExpr struct{
+	operator *Token
+	right Expr
+}
+
+func NewUnaryExpr(operator *Token, right Expr)*UnaryExpr{
+	u := &UnaryExpr{
 		operator: operator,
 		right: right,
 	}
 	return u
 }
 
-type Variable struct{
+type VariableExpr struct{
 	name *Token
 }
 
-func NewVariable(name *Token)*Variable{
-	v := &Variable{
+func NewVariableExpr(name *Token)*VariableExpr{
+	v := &VariableExpr{
 		name: name,
 	}
 	return v
 }
 
 type ExprVisitor interface{
-	VisitAssignExpr(assign *Assign)
-	VisitBinaryExpr(binary *Binary)
-	VisitGroupingExpr(grouping *Grouping)
-	VisitLiteralExpr(literal *Literal)
-	VisitUnaryExpr(unary *Unary)
-	VisitVariableExpr(variable *Variable)
+	VisitAssignExpr(assignexpr *AssignExpr)
+	VisitBinaryExpr(binaryexpr *BinaryExpr)
+	VisitGroupingExpr(groupingexpr *GroupingExpr)
+	VisitLiteralExpr(literalexpr *LiteralExpr)
+	VisitLogicalExpr(logicalexpr *LogicalExpr)
+	VisitUnaryExpr(unaryexpr *UnaryExpr)
+	VisitVariableExpr(variableexpr *VariableExpr)
 }
 
 func VisitorExpr(v ExprVisitor,e Expr){
 	switch e.(type){
-	case *Assign:
-		v.VisitAssignExpr(e.(*Assign))
-	case *Binary:
-		v.VisitBinaryExpr(e.(*Binary))
-	case *Grouping:
-		v.VisitGroupingExpr(e.(*Grouping))
-	case *Literal:
-		v.VisitLiteralExpr(e.(*Literal))
-	case *Unary:
-		v.VisitUnaryExpr(e.(*Unary))
-	case *Variable:
-		v.VisitVariableExpr(e.(*Variable))
+	case *AssignExpr:
+		v.VisitAssignExpr(e.(*AssignExpr))
+	case *BinaryExpr:
+		v.VisitBinaryExpr(e.(*BinaryExpr))
+	case *GroupingExpr:
+		v.VisitGroupingExpr(e.(*GroupingExpr))
+	case *LiteralExpr:
+		v.VisitLiteralExpr(e.(*LiteralExpr))
+	case *LogicalExpr:
+		v.VisitLogicalExpr(e.(*LogicalExpr))
+	case *UnaryExpr:
+		v.VisitUnaryExpr(e.(*UnaryExpr))
+	case *VariableExpr:
+		v.VisitVariableExpr(e.(*VariableExpr))
 	}
 }
 
 type ExprVisitorWithVal[T any] interface{
-	VisitAssignExpr(assign *Assign) T
-	VisitBinaryExpr(binary *Binary) T
-	VisitGroupingExpr(grouping *Grouping) T
-	VisitLiteralExpr(literal *Literal) T
-	VisitUnaryExpr(unary *Unary) T
-	VisitVariableExpr(variable *Variable) T
+	VisitAssignExpr(assignexpr *AssignExpr) T
+	VisitBinaryExpr(binaryexpr *BinaryExpr) T
+	VisitGroupingExpr(groupingexpr *GroupingExpr) T
+	VisitLiteralExpr(literalexpr *LiteralExpr) T
+	VisitLogicalExpr(logicalexpr *LogicalExpr) T
+	VisitUnaryExpr(unaryexpr *UnaryExpr) T
+	VisitVariableExpr(variableexpr *VariableExpr) T
 }
 
 func VisitorExprWithVal[T any](v ExprVisitorWithVal[T],e Expr) T{
 	switch e.(type){
-	case *Assign:
-		return v.VisitAssignExpr(e.(*Assign))
-	case *Binary:
-		return v.VisitBinaryExpr(e.(*Binary))
-	case *Grouping:
-		return v.VisitGroupingExpr(e.(*Grouping))
-	case *Literal:
-		return v.VisitLiteralExpr(e.(*Literal))
-	case *Unary:
-		return v.VisitUnaryExpr(e.(*Unary))
-	case *Variable:
-		return v.VisitVariableExpr(e.(*Variable))
+	case *AssignExpr:
+		return v.VisitAssignExpr(e.(*AssignExpr))
+	case *BinaryExpr:
+		return v.VisitBinaryExpr(e.(*BinaryExpr))
+	case *GroupingExpr:
+		return v.VisitGroupingExpr(e.(*GroupingExpr))
+	case *LiteralExpr:
+		return v.VisitLiteralExpr(e.(*LiteralExpr))
+	case *LogicalExpr:
+		return v.VisitLogicalExpr(e.(*LogicalExpr))
+	case *UnaryExpr:
+		return v.VisitUnaryExpr(e.(*UnaryExpr))
+	case *VariableExpr:
+		return v.VisitVariableExpr(e.(*VariableExpr))
 	default:
 		panic("can't find Expr")
 	}

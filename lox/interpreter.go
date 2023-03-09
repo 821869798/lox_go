@@ -3,6 +3,7 @@ package lox
 import (
 	"fmt"
 	"lox_go/util"
+	"strconv"
 )
 
 type Interpreter struct {
@@ -49,20 +50,28 @@ func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) 
 	}
 }
 
-func (i *Interpreter) VisitBlockStmt(stmt *Block) {
+func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) {
 	i.executeBlock(stmt.statements, NewEnvironment(i.env))
 }
 
-func (i *Interpreter) VisitExpressionStmt(stmt *Expression) {
+func (i *Interpreter) VisitExpressionStmt(stmt *ExpressionStmt) {
 	i.evaluate(stmt.expression)
 }
 
-func (i *Interpreter) VisitPrintStmt(stmt *Print) {
+func (i *Interpreter) VisitIfStmt(stmt *IfStmt) {
+	if i.isTruthy(i.evaluate(stmt.condition)) {
+		i.execute(stmt.thenBranch)
+	} else if stmt.elseBranch != nil {
+		i.execute(stmt.elseBranch)
+	}
+}
+
+func (i *Interpreter) VisitPrintStmt(stmt *PrintStmt) {
 	value := i.evaluate(stmt.expression)
 	fmt.Print(util.GetInterfaceToString(value))
 }
 
-func (i *Interpreter) VisitVarStmtStmt(stmt *VarStmt) {
+func (i *Interpreter) VisitVarStmt(stmt *VarStmt) {
 	var value interface{} = nil
 	if stmt.initializer != nil {
 		value = i.evaluate(stmt.initializer)
@@ -70,8 +79,14 @@ func (i *Interpreter) VisitVarStmtStmt(stmt *VarStmt) {
 	i.env.define(stmt.name.lexeme, value)
 }
 
-func (i *Interpreter) VisitAssignExpr(expr *Assign) interface{} {
-	value := i.evaluate(expr)
+func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) {
+	for i.isTruthy(i.evaluate(stmt.condition)) {
+		i.execute(stmt.body)
+	}
+}
+
+func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) interface{} {
+	value := i.evaluate(expr.value)
 	i.env.assign(expr.name, value)
 	return value
 }
@@ -80,15 +95,31 @@ func (i *Interpreter) evaluate(expr Expr) interface{} {
 	return VisitorExprWithVal[interface{}](i, expr)
 }
 
-func (i *Interpreter) VisitLiteralExpr(expr *Literal) interface{} {
+func (i *Interpreter) VisitLiteralExpr(expr *LiteralExpr) interface{} {
 	return expr.value
 }
 
-func (i *Interpreter) VisitGroupingExpr(expr *Grouping) interface{} {
+func (i *Interpreter) VisitLogicalExpr(expr *LogicalExpr) interface{} {
+	left := i.evaluate(expr.left)
+
+	if expr.operator.tokenType == TokenType_OR {
+		if i.isTruthy(left) {
+			return left
+		}
+	} else {
+		if !i.isTruthy(left) {
+			return left
+		}
+	}
+
+	return i.evaluate(expr.right)
+}
+
+func (i *Interpreter) VisitGroupingExpr(expr *GroupingExpr) interface{} {
 	return i.evaluate(expr.expression)
 }
 
-func (i *Interpreter) VisitUnaryExpr(expr *Unary) interface{} {
+func (i *Interpreter) VisitUnaryExpr(expr *UnaryExpr) interface{} {
 	right := i.evaluate(expr.right)
 
 	switch expr.operator.tokenType {
@@ -101,11 +132,11 @@ func (i *Interpreter) VisitUnaryExpr(expr *Unary) interface{} {
 	return nil
 }
 
-func (i *Interpreter) VisitVariableExpr(expr *Variable) interface{} {
+func (i *Interpreter) VisitVariableExpr(expr *VariableExpr) interface{} {
 	return i.env.get(expr.name)
 }
 
-func (i *Interpreter) VisitBinaryExpr(expr *Binary) interface{} {
+func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) interface{} {
 	left := i.evaluate(expr.left)
 	right := i.evaluate(expr.right)
 
@@ -125,7 +156,15 @@ func (i *Interpreter) VisitBinaryExpr(expr *Binary) interface{} {
 		if sok1 && sok2 {
 			return s1 + s2
 		}
-		panic(NewRuntimeError(expr.operator, "Operands must be two numbers or two strings."))
+		if sok1 && fok2 {
+			key2 := strconv.FormatFloat(f2, 'f', -1, 64)
+			return s1 + key2
+		}
+		if sok2 && fok1 {
+			key1 := strconv.FormatFloat(f1, 'f', -1, 64)
+			return key1 + s2
+		}
+		panic(NewRuntimeError(expr.operator, "Operands must be two numbers or strings."))
 	case TokenType_SLASH:
 		i.checkNumberOperands(expr.operator, left, right)
 		return left.(float64) / right.(float64)

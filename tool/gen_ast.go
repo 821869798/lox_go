@@ -18,19 +18,23 @@ func main() {
 
 	outputDir := args[1]
 	defineAst(outputDir, "Expr", []string{
-		"Assign   : name *Token, value Expr",
-		"Binary   : left Expr, operator *Token, right Expr",
-		"Grouping : expression Expr",
-		"Literal  : value interface{}",
-		"Unary    : operator *Token, right Expr",
-		"Variable : name *Token",
+		"AssignExpr   : name *Token, value Expr",
+		"BinaryExpr   : left Expr, operator *Token, right Expr",
+		"GroupingExpr : expression Expr",
+		"LiteralExpr  : value interface{}",
+		"LogicalExpr  : left Expr, operator *Token, right Expr",
+		"UnaryExpr    : operator *Token, right Expr",
+		"VariableExpr : name *Token",
 	})
 
 	defineAst(outputDir, "Stmt", []string{
-		"Block      : statements []Stmt",
-		"Expression : expression Expr",
-		"Print      : expression Expr",
+		"BlockStmt      : statements []Stmt",
+		"ExpressionStmt : expression Expr",
+		"IfStmt         : condition Expr, thenBranch Stmt," +
+			" elseBranch Stmt",
+		"PrintStmt      : expression Expr",
 		"VarStmt    : name *Token, initializer Expr",
+		"WhileStmt  : condition Expr, body Stmt",
 	})
 }
 
@@ -82,7 +86,7 @@ func defineVisitor(f *os.File, baseName string, exprTypes []string) {
 	for _, exprType := range exprTypes {
 		exprStrs := strings.Split(exprType, ":")
 		typeName := strings.TrimSpace(exprStrs[0])
-		f.WriteString(fmt.Sprintf("\tVisit%s%s(%s *%s)\n", typeName, baseName, strings.ToLower(typeName), typeName))
+		f.WriteString(fmt.Sprintf("\tVisit%s(%s *%s)\n", typeName, strings.ToLower(typeName), typeName))
 	}
 
 	f.WriteString("}\n\n")
@@ -94,7 +98,7 @@ func defineVisitor(f *os.File, baseName string, exprTypes []string) {
 		exprStrs := strings.Split(exprType, ":")
 		typeName := strings.TrimSpace(exprStrs[0])
 		f.WriteString(fmt.Sprintf("\tcase *%s:\n", typeName))
-		f.WriteString(fmt.Sprintf("\t\tv.Visit%s%s(%s.(*%s))\n", typeName, baseName, varName, typeName))
+		f.WriteString(fmt.Sprintf("\t\tv.Visit%s(%s.(*%s))\n", typeName, varName, typeName))
 	}
 	f.WriteString("\t}\n")
 
@@ -106,7 +110,7 @@ func defineVisitor(f *os.File, baseName string, exprTypes []string) {
 	for _, exprType := range exprTypes {
 		exprStrs := strings.Split(exprType, ":")
 		typeName := strings.TrimSpace(exprStrs[0])
-		f.WriteString(fmt.Sprintf("\tVisit%s%s(%s *%s) T\n", typeName, baseName, strings.ToLower(typeName), typeName))
+		f.WriteString(fmt.Sprintf("\tVisit%s(%s *%s) T\n", typeName, strings.ToLower(typeName), typeName))
 	}
 
 	f.WriteString("}\n\n")
@@ -117,7 +121,7 @@ func defineVisitor(f *os.File, baseName string, exprTypes []string) {
 		exprStrs := strings.Split(exprType, ":")
 		typeName := strings.TrimSpace(exprStrs[0])
 		f.WriteString(fmt.Sprintf("\tcase *%s:\n", typeName))
-		f.WriteString(fmt.Sprintf("\t\treturn v.Visit%s%s(%s.(*%s))\n", typeName, baseName, varName, typeName))
+		f.WriteString(fmt.Sprintf("\t\treturn v.Visit%s(%s.(*%s))\n", typeName, varName, typeName))
 	}
 	f.WriteString(fmt.Sprintf("\tdefault:\n\t\tpanic(\"can't find %s\")\n", baseName))
 	f.WriteString("\t}\n")
