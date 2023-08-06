@@ -3,7 +3,7 @@ package lox
 import (
 	"bufio"
 	"fmt"
-	log "github.com/FishGoddess/logit"
+	"github.com/gookit/slog"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -28,10 +28,14 @@ func run(source string) {
 	interpreter.interpret(statements)
 }
 
+func Eval(code string) {
+	run(code)
+}
+
 func RunFile(filename string) {
 	code, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Info("Error reading file: %s", filename)
+		slog.Infof("Error reading file: %s", filename)
 		return
 	}
 
@@ -52,7 +56,7 @@ func RunPrompt() {
 		fmt.Print("> ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			log.Error("input error:%v", err)
+			slog.Errorf("input error:%v", err)
 			break
 		}
 		code := strings.TrimRight(input, "\n")
@@ -75,11 +79,11 @@ func reportErrorToken(token *Token, message string) {
 }
 
 func report(line int, where string, message string) {
-	log.Error("<error>[line %d] Error%s: %s", line, where, message)
+	slog.Errorf("<error>[line %d] Error%s: %s", line, where, message)
 	hadError = true
 }
 
 func reportRuntimeError(err *RuntimeError) {
-	log.Error(err.Error())
+	slog.Errorf(err.Error())
 	hadRuntimeError = true
 }

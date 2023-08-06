@@ -13,7 +13,7 @@ func NewAstPrinter() *AstPrinter {
 	return a
 }
 
-func (a *AstPrinter) print(expr Expr) string {
+func (a *AstPrinter) Print(expr Expr) string {
 	return VisitorExprWithVal[string](a, expr)
 }
 

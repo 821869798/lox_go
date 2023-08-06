@@ -2,15 +2,14 @@ package main
 
 import (
 	"fmt"
-	log "github.com/FishGoddess/logit"
+	"github.com/gookit/slog"
 	"lox_go/lox"
 	"os"
 )
 
 func main() {
 
-	log.Me().SetLevel(log.DebugLevel)
-	log.Me().NeedCaller(true)
+	slog.SetLogLevel(slog.InfoLevel)
 
 	args := os.Args
 	if len(args) > 2 {
