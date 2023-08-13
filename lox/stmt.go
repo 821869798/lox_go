@@ -25,6 +25,21 @@ func NewExpressionStmt(expression Expr)*ExpressionStmt{
 	return e
 }
 
+type FunctionStmt struct{
+	name *Token
+	params []*Token
+	body []Stmt
+}
+
+func NewFunctionStmt(name *Token, params []*Token, body []Stmt)*FunctionStmt{
+	f := &FunctionStmt{
+		name: name,
+		params: params,
+		body: body,
+	}
+	return f
+}
+
 type IfStmt struct{
 	condition Expr
 	thenBranch Stmt
@@ -49,6 +64,19 @@ func NewPrintStmt(expression Expr)*PrintStmt{
 		expression: expression,
 	}
 	return p
+}
+
+type ReturnStmt struct{
+	keyword *Token
+	value Expr
+}
+
+func NewReturnStmt(keyword *Token, value Expr)*ReturnStmt{
+	r := &ReturnStmt{
+		keyword: keyword,
+		value: value,
+	}
+	return r
 }
 
 type VarStmt struct{
@@ -80,8 +108,10 @@ func NewWhileStmt(condition Expr, body Stmt)*WhileStmt{
 type StmtVisitor interface{
 	VisitBlockStmt(blockstmt *BlockStmt)
 	VisitExpressionStmt(expressionstmt *ExpressionStmt)
+	VisitFunctionStmt(functionstmt *FunctionStmt)
 	VisitIfStmt(ifstmt *IfStmt)
 	VisitPrintStmt(printstmt *PrintStmt)
+	VisitReturnStmt(returnstmt *ReturnStmt)
 	VisitVarStmt(varstmt *VarStmt)
 	VisitWhileStmt(whilestmt *WhileStmt)
 }
@@ -92,10 +122,14 @@ func VisitorStmt(v StmtVisitor,s Stmt){
 		v.VisitBlockStmt(s.(*BlockStmt))
 	case *ExpressionStmt:
 		v.VisitExpressionStmt(s.(*ExpressionStmt))
+	case *FunctionStmt:
+		v.VisitFunctionStmt(s.(*FunctionStmt))
 	case *IfStmt:
 		v.VisitIfStmt(s.(*IfStmt))
 	case *PrintStmt:
 		v.VisitPrintStmt(s.(*PrintStmt))
+	case *ReturnStmt:
+		v.VisitReturnStmt(s.(*ReturnStmt))
 	case *VarStmt:
 		v.VisitVarStmt(s.(*VarStmt))
 	case *WhileStmt:
@@ -106,8 +140,10 @@ func VisitorStmt(v StmtVisitor,s Stmt){
 type StmtVisitorWithVal[T any] interface{
 	VisitBlockStmt(blockstmt *BlockStmt) T
 	VisitExpressionStmt(expressionstmt *ExpressionStmt) T
+	VisitFunctionStmt(functionstmt *FunctionStmt) T
 	VisitIfStmt(ifstmt *IfStmt) T
 	VisitPrintStmt(printstmt *PrintStmt) T
+	VisitReturnStmt(returnstmt *ReturnStmt) T
 	VisitVarStmt(varstmt *VarStmt) T
 	VisitWhileStmt(whilestmt *WhileStmt) T
 }
@@ -118,10 +154,14 @@ func VisitorStmtWithVal[T any](v StmtVisitorWithVal[T],s Stmt) T{
 		return v.VisitBlockStmt(s.(*BlockStmt))
 	case *ExpressionStmt:
 		return v.VisitExpressionStmt(s.(*ExpressionStmt))
+	case *FunctionStmt:
+		return v.VisitFunctionStmt(s.(*FunctionStmt))
 	case *IfStmt:
 		return v.VisitIfStmt(s.(*IfStmt))
 	case *PrintStmt:
 		return v.VisitPrintStmt(s.(*PrintStmt))
+	case *ReturnStmt:
+		return v.VisitReturnStmt(s.(*ReturnStmt))
 	case *VarStmt:
 		return v.VisitVarStmt(s.(*VarStmt))
 	case *WhileStmt:

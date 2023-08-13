@@ -20,6 +20,9 @@ func (a *AstPrinter) Print(expr Expr) string {
 func (a *AstPrinter) VisitBinaryExpr(expr *BinaryExpr) string {
 	return a.parenthesize(expr.operator.lexeme, expr.left, expr.right)
 }
+func (a *AstPrinter) VisitCallExpr(expr *CallExpr) string {
+	return a.parenthesize("function", expr.callee)
+}
 
 func (a *AstPrinter) VisitGroupingExpr(grouping *GroupingExpr) string {
 	return a.parenthesize("group", grouping.expression)

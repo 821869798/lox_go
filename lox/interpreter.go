@@ -7,13 +7,16 @@ import (
 )
 
 type Interpreter struct {
-	env *Environment
+	env     *Environment
+	globals *Environment
 }
 
 func NewInterpreter() *Interpreter {
-	i := &Interpreter{
-		env: NewEnvironment(nil),
-	}
+	i := &Interpreter{}
+	i.globals = NewEnvironment(nil)
+	i.env = i.globals
+
+	i.globals.define("clock", NewCallableClock())
 	return i
 }
 
@@ -58,6 +61,11 @@ func (i *Interpreter) VisitExpressionStmt(stmt *ExpressionStmt) {
 	i.evaluate(stmt.expression)
 }
 
+func (i *Interpreter) VisitFunctionStmt(stmt *FunctionStmt) {
+	function := NewLoxFunction(stmt, i.env)
+	i.env.define(stmt.name.lexeme, function)
+}
+
 func (i *Interpreter) VisitIfStmt(stmt *IfStmt) {
 	if i.isTruthy(i.evaluate(stmt.condition)) {
 		i.execute(stmt.thenBranch)
@@ -69,6 +77,14 @@ func (i *Interpreter) VisitIfStmt(stmt *IfStmt) {
 func (i *Interpreter) VisitPrintStmt(stmt *PrintStmt) {
 	value := i.evaluate(stmt.expression)
 	fmt.Print(util.GetInterfaceToString(value))
+}
+
+func (i *Interpreter) VisitReturnStmt(stmt *ReturnStmt) {
+	var value interface{} = nil
+	if stmt.value != nil {
+		value = i.evaluate(stmt.value)
+	}
+	panic(NewReturn(value))
 }
 
 func (i *Interpreter) VisitVarStmt(stmt *VarStmt) {
@@ -189,6 +205,26 @@ func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) interface{} {
 		return i.isEqual(left, right)
 	}
 	return nil
+}
+
+func (i *Interpreter) VisitCallExpr(expr *CallExpr) interface{} {
+	callee := i.evaluate(expr.callee)
+
+	var arguments []interface{} = nil
+	for _, argument := range expr.arguments {
+		arguments = append(arguments, i.evaluate(argument))
+	}
+
+	function, ok := callee.(LoxCallable)
+	if !ok {
+		panic(NewRuntimeError(expr.paren, "Can only call functions and classes."))
+	}
+	// 新增部分开始
+	if len(arguments) != function.Arity() {
+		panic(NewRuntimeError(expr.paren, fmt.Sprintf("Expected %d arguments but got %d.", function.Arity(), len(arguments))))
+	}
+
+	return function.Call(i, arguments)
 }
 
 func (i *Interpreter) isTruthy(obj interface{}) bool {
