@@ -9,12 +9,14 @@ import (
 type Interpreter struct {
 	env     *Environment
 	globals *Environment
+	locals  map[Expr]int
 }
 
 func NewInterpreter() *Interpreter {
 	i := &Interpreter{}
 	i.globals = NewEnvironment(nil)
 	i.env = i.globals
+	i.locals = make(map[Expr]int)
 
 	i.globals.define("clock", NewCallableClock())
 	return i
@@ -39,6 +41,10 @@ func (i *Interpreter) interpret(statements []Stmt) {
 
 func (i *Interpreter) execute(stmt Stmt) {
 	VisitorStmt(i, stmt)
+}
+
+func (i *Interpreter) resolve(expr Expr, depth int) {
+	i.locals[expr] = depth
 }
 
 func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) {
@@ -103,7 +109,13 @@ func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) {
 
 func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) interface{} {
 	value := i.evaluate(expr.value)
-	i.env.assign(expr.name, value)
+	//i.env.assign(expr.name, value)
+	distance, ok := i.locals[expr]
+	if ok {
+		i.env.assignAt(distance, expr.name, value)
+	} else {
+		i.globals.assign(expr.name, value)
+	}
 	return value
 }
 
@@ -149,7 +161,17 @@ func (i *Interpreter) VisitUnaryExpr(expr *UnaryExpr) interface{} {
 }
 
 func (i *Interpreter) VisitVariableExpr(expr *VariableExpr) interface{} {
-	return i.env.get(expr.name)
+	//return i.env.get(expr.name)
+	return i.lookUpVariable(expr.name, expr)
+}
+
+func (i *Interpreter) lookUpVariable(name *Token, expr Expr) interface{} {
+	distance, ok := i.locals[expr]
+	if ok {
+		return i.env.getAt(distance, name.lexeme)
+	} else {
+		return i.globals.get(name)
+	}
 }
 
 func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) interface{} {

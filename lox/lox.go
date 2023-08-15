@@ -25,6 +25,9 @@ func run(source string) {
 		return
 	}
 
+	resolver := NewResolver(interpreter)
+	resolver.resolveStmt(statements)
+
 	interpreter.interpret(statements)
 }
 

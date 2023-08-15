@@ -95,3 +95,20 @@ counter(); // "2".
 func TestLox10FunctionClosure(t *testing.T) {
 	lox.Eval(codeFunctionClosure)
 }
+
+const code11Binding = `
+var a = "global";
+{
+  fun showA() {
+    print a;
+  }
+
+  showA();
+  var a = "block";
+  showA();
+}
+`
+
+func TestLox11Resolving(t *testing.T) {
+	lox.Eval(code11Binding)
+}
