@@ -99,12 +99,13 @@ func TestLox10FunctionClosure(t *testing.T) {
 const code11Binding = `
 var a = "global";
 {
+  return a;
   fun showA() {
     print a;
   }
 
   showA();
-  var a = "block";
+  a = "block";
   showA();
 }
 `

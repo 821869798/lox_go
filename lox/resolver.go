@@ -4,15 +4,24 @@ import (
 	"lox_go/generic/stack"
 )
 
+type FunctionType int
+
+const (
+	FunctionType_None FunctionType = iota
+	FunctionType_Function
+)
+
 type Resolver struct {
-	interpreter *Interpreter
-	scopes      *stack.Stack[map[string]bool]
+	interpreter     *Interpreter
+	scopes          *stack.Stack[map[string]bool]
+	currentFunction FunctionType
 }
 
 func NewResolver(interpreter *Interpreter) *Resolver {
 	r := &Resolver{
-		interpreter: interpreter,
-		scopes:      stack.New[map[string]bool](),
+		interpreter:     interpreter,
+		scopes:          stack.New[map[string]bool](),
+		currentFunction: FunctionType_None,
 	}
 	return r
 }
@@ -45,6 +54,9 @@ func (r *Resolver) declare(name *Token) {
 	}
 
 	scope := r.scopes.Peek()
+	if _, ok := scope[name.lexeme]; ok {
+		reportErrorToken(name, "Already a variable with this name in this scope.")
+	}
 	scope[name.lexeme] = false
 }
 
@@ -98,10 +110,12 @@ func (r *Resolver) VisitAssignExpr(assignexpr *AssignExpr) {
 func (r *Resolver) VisitFunctionStmt(functionstmt *FunctionStmt) {
 	r.declare(functionstmt.name)
 	r.define(functionstmt.name)
-	r.resolveFunction(functionstmt)
+	r.resolveFunction(functionstmt, FunctionType_Function)
 }
 
-func (r *Resolver) resolveFunction(functionstmt *FunctionStmt) {
+func (r *Resolver) resolveFunction(functionstmt *FunctionStmt, functionType FunctionType) {
+	enclosingFunction := r.currentFunction
+	r.currentFunction = functionType
 	r.beginScope()
 	for _, param := range functionstmt.params {
 		r.declare(param)
@@ -109,6 +123,7 @@ func (r *Resolver) resolveFunction(functionstmt *FunctionStmt) {
 	}
 	r.resolveStmt(functionstmt.body)
 	r.endScope()
+	r.currentFunction = enclosingFunction
 }
 
 func (r *Resolver) VisitExpressionStmt(expressionstmt *ExpressionStmt) {
@@ -128,6 +143,9 @@ func (r *Resolver) VisitPrintStmt(printstmt *PrintStmt) {
 }
 
 func (r *Resolver) VisitReturnStmt(returnstmt *ReturnStmt) {
+	if r.currentFunction == FunctionType_None {
+		reportErrorToken(returnstmt.keyword, "Can't return from top-level code.")
+	}
 	if returnstmt.value != nil {
 		r.resolveExpr(returnstmt.value)
 	}

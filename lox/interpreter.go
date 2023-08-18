@@ -2,6 +2,7 @@ package lox
 
 import (
 	"fmt"
+	"github.com/gookit/slog"
 	"lox_go/util"
 	"strconv"
 )
@@ -25,10 +26,12 @@ func NewInterpreter() *Interpreter {
 func (i *Interpreter) interpret(statements []Stmt) {
 	defer func() {
 		if err := recover(); err != nil {
-			v, ok := err.(*RuntimeError)
-			if ok {
+			switch v := err.(type) {
+			case *RuntimeError:
 				reportRuntimeError(v)
-			} else {
+			case *Return:
+				slog.Errorf("Unexpected return: %v", v)
+			default:
 				panic(err)
 			}
 		}
