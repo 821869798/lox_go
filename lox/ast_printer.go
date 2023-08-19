@@ -51,6 +51,18 @@ func (a *AstPrinter) VisitAssignExpr(assign *AssignExpr) string {
 	return ""
 }
 
+func (a *AstPrinter) VisitGetExpr(getexpr *GetExpr) string {
+	return a.parenthesize("get", getexpr.object, getexpr.name)
+}
+
+func (a *AstPrinter) VisitSetExpr(setexpr *SetExpr) string {
+	return a.parenthesize("set", setexpr.object, setexpr.name, setexpr.value)
+}
+
+func (a *AstPrinter) VisitThisExpr(thisexpr *ThisExpr) string {
+	return a.parenthesize("this", thisexpr.keyword)
+}
+
 func (a *AstPrinter) parenthesize(name string, exprs ...Expr) string {
 	var b strings.Builder
 	b.WriteString("(")

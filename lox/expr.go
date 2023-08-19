@@ -46,6 +46,19 @@ func NewCallExpr(callee Expr, paren *Token, arguments []Expr)*CallExpr{
 	return c
 }
 
+type GetExpr struct{
+	object Expr
+	name *Token
+}
+
+func NewGetExpr(object Expr, name *Token)*GetExpr{
+	g := &GetExpr{
+		object: object,
+		name: name,
+	}
+	return g
+}
+
 type GroupingExpr struct{
 	expression Expr
 }
@@ -83,6 +96,32 @@ func NewLogicalExpr(left Expr, operator *Token, right Expr)*LogicalExpr{
 	return l
 }
 
+type SetExpr struct{
+	object Expr
+	name *Token
+	value Expr
+}
+
+func NewSetExpr(object Expr, name *Token, value Expr)*SetExpr{
+	s := &SetExpr{
+		object: object,
+		name: name,
+		value: value,
+	}
+	return s
+}
+
+type ThisExpr struct{
+	keyword *Token
+}
+
+func NewThisExpr(keyword *Token)*ThisExpr{
+	t := &ThisExpr{
+		keyword: keyword,
+	}
+	return t
+}
+
 type UnaryExpr struct{
 	operator *Token
 	right Expr
@@ -111,9 +150,12 @@ type ExprVisitor interface{
 	VisitAssignExpr(assignexpr *AssignExpr)
 	VisitBinaryExpr(binaryexpr *BinaryExpr)
 	VisitCallExpr(callexpr *CallExpr)
+	VisitGetExpr(getexpr *GetExpr)
 	VisitGroupingExpr(groupingexpr *GroupingExpr)
 	VisitLiteralExpr(literalexpr *LiteralExpr)
 	VisitLogicalExpr(logicalexpr *LogicalExpr)
+	VisitSetExpr(setexpr *SetExpr)
+	VisitThisExpr(thisexpr *ThisExpr)
 	VisitUnaryExpr(unaryexpr *UnaryExpr)
 	VisitVariableExpr(variableexpr *VariableExpr)
 }
@@ -126,12 +168,18 @@ func VisitorExpr(v ExprVisitor,e Expr){
 		v.VisitBinaryExpr(e.(*BinaryExpr))
 	case *CallExpr:
 		v.VisitCallExpr(e.(*CallExpr))
+	case *GetExpr:
+		v.VisitGetExpr(e.(*GetExpr))
 	case *GroupingExpr:
 		v.VisitGroupingExpr(e.(*GroupingExpr))
 	case *LiteralExpr:
 		v.VisitLiteralExpr(e.(*LiteralExpr))
 	case *LogicalExpr:
 		v.VisitLogicalExpr(e.(*LogicalExpr))
+	case *SetExpr:
+		v.VisitSetExpr(e.(*SetExpr))
+	case *ThisExpr:
+		v.VisitThisExpr(e.(*ThisExpr))
 	case *UnaryExpr:
 		v.VisitUnaryExpr(e.(*UnaryExpr))
 	case *VariableExpr:
@@ -143,9 +191,12 @@ type ExprVisitorWithVal[T any] interface{
 	VisitAssignExpr(assignexpr *AssignExpr) T
 	VisitBinaryExpr(binaryexpr *BinaryExpr) T
 	VisitCallExpr(callexpr *CallExpr) T
+	VisitGetExpr(getexpr *GetExpr) T
 	VisitGroupingExpr(groupingexpr *GroupingExpr) T
 	VisitLiteralExpr(literalexpr *LiteralExpr) T
 	VisitLogicalExpr(logicalexpr *LogicalExpr) T
+	VisitSetExpr(setexpr *SetExpr) T
+	VisitThisExpr(thisexpr *ThisExpr) T
 	VisitUnaryExpr(unaryexpr *UnaryExpr) T
 	VisitVariableExpr(variableexpr *VariableExpr) T
 }
@@ -158,12 +209,18 @@ func VisitorExprWithVal[T any](v ExprVisitorWithVal[T],e Expr) T{
 		return v.VisitBinaryExpr(e.(*BinaryExpr))
 	case *CallExpr:
 		return v.VisitCallExpr(e.(*CallExpr))
+	case *GetExpr:
+		return v.VisitGetExpr(e.(*GetExpr))
 	case *GroupingExpr:
 		return v.VisitGroupingExpr(e.(*GroupingExpr))
 	case *LiteralExpr:
 		return v.VisitLiteralExpr(e.(*LiteralExpr))
 	case *LogicalExpr:
 		return v.VisitLogicalExpr(e.(*LogicalExpr))
+	case *SetExpr:
+		return v.VisitSetExpr(e.(*SetExpr))
+	case *ThisExpr:
+		return v.VisitThisExpr(e.(*ThisExpr))
 	case *UnaryExpr:
 		return v.VisitUnaryExpr(e.(*UnaryExpr))
 	case *VariableExpr:

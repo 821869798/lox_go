@@ -73,6 +73,22 @@ func TestLox10FunctionFib(t *testing.T) {
 	lox.Eval(codeFunctionFib)
 }
 
+const codeFunction2 = `
+fun Add(a,b) {
+	return a+b;
+}
+
+fun Hello(num) {
+	print "Hello " + num;
+}
+
+Hello(Add(1,2));
+`
+
+func TestLox10Function2(t *testing.T) {
+	lox.Eval(codeFunction2)
+}
+
 const codeFunctionClosure = `
 fun makeCounter() {
   var i = 0;
@@ -112,4 +128,53 @@ var a = "global";
 
 func TestLox11Resolving(t *testing.T) {
 	lox.Eval(code11Binding)
+}
+
+const code12Class1 = `
+class Bagel {}
+var bagel = Bagel();
+print bagel; // Prints "Bagel instance".
+`
+
+func TestLox12Class1(t *testing.T) {
+	lox.Eval(code12Class1)
+}
+
+const code12Class2 = `
+class Bacon {
+  eat() {
+    print "Crunch crunch crunch!";
+  }
+}
+
+Bacon().eat(); // Prints "Crunch crunch crunch!".
+`
+
+func TestLox12Class2(t *testing.T) {
+	lox.Eval(code12Class2)
+}
+
+const code12Class3 = `
+class Person {
+  init() {
+	this.name = "123";
+  }
+  sayName() {
+    print this.name;
+  }
+}
+
+var jane = Person();
+print jane.name + "\n";
+jane.name = "Jane";
+
+var bill = Person();
+bill.name = "Bill";
+
+bill.sayName = jane.sayName;
+bill.sayName(); // ?
+`
+
+func TestLox12Class3(t *testing.T) {
+	lox.Eval(code12Class3)
 }

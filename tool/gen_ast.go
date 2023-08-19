@@ -21,15 +21,19 @@ func main() {
 		"AssignExpr   : name *Token, value Expr",
 		"BinaryExpr   : left Expr, operator *Token, right Expr",
 		"CallExpr     : callee Expr, paren *Token, arguments []Expr",
+		"GetExpr      : object Expr, name *Token",
 		"GroupingExpr : expression Expr",
 		"LiteralExpr  : value interface{}",
 		"LogicalExpr  : left Expr, operator *Token, right Expr",
+		"SetExpr	  : object Expr, name *Token, value Expr",
+		"ThisExpr     : keyword *Token",
 		"UnaryExpr    : operator *Token, right Expr",
 		"VariableExpr : name *Token",
 	})
 
 	defineAst(outputDir, "Stmt", []string{
 		"BlockStmt      : statements []Stmt",
+		"ClassStmt      : name *Token, methods []*FunctionStmt",
 		"ExpressionStmt : expression Expr",
 		"FunctionStmt   : name *Token, params []*Token, body []Stmt",
 		"IfStmt         : condition Expr, thenBranch Stmt," +

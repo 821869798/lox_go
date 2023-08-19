@@ -32,6 +32,9 @@ func (p *Parser) parse() []Stmt {
 }
 
 func (p *Parser) declaration() Stmt {
+	if p.match(TokenType_CLASS) {
+		return p.classDeclaration()
+	}
 	if p.match(TokenType_FUN) {
 		return p.function("function")
 	}
@@ -40,6 +43,19 @@ func (p *Parser) declaration() Stmt {
 	}
 
 	return p.statement()
+}
+
+func (p *Parser) classDeclaration() Stmt {
+	name := p.consume(TokenType_IDENTIFIER, "Expect class name.")
+	p.consume(TokenType_LEFT_BRACE, "Expect '{' before class body.")
+
+	var methods []*FunctionStmt
+	for !p.check(TokenType_RIGHT_BRACE) && !p.isAtEnd() {
+		methods = append(methods, p.function("method"))
+	}
+
+	p.consume(TokenType_RIGHT_BRACE, "Expect '}' after class body.")
+	return NewClassStmt(name, methods)
 }
 
 func (p *Parser) statement() Stmt {
@@ -208,10 +224,12 @@ func (p *Parser) assignment() Expr {
 		equals := p.previous()
 		value := p.assignment()
 
-		variable, ok := expr.(*VariableExpr)
-		if ok {
-			name := variable.name
+		switch v := expr.(type) {
+		case *VariableExpr:
+			name := v.name
 			return NewAssignExpr(name, value)
+		case *GetExpr:
+			return NewSetExpr(v.object, v.name, value)
 		}
 
 		reportErrorToken(equals, "Invalid assignment target.")
@@ -360,6 +378,9 @@ func (p *Parser) call() Expr {
 	for true {
 		if p.match(TokenType_LEFT_PAREN) {
 			expr = p.finishCall(expr)
+		} else if p.match(TokenType_DOT) {
+			name := p.consume(TokenType_IDENTIFIER, "Expect property name after '.'.")
+			expr = NewGetExpr(expr, name)
 		} else {
 			break
 		}
@@ -381,6 +402,10 @@ func (p *Parser) primary() Expr {
 
 	if p.match(TokenType_NUMBER, TokenType_STRING) {
 		return NewLiteralExpr(p.previous().literal)
+	}
+
+	if p.match(TokenType_THIS) {
+		return NewThisExpr(p.previous())
 	}
 
 	if p.match(TokenType_IDENTIFIER) {

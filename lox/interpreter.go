@@ -66,12 +66,23 @@ func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) {
 	i.executeBlock(stmt.statements, NewEnvironment(i.env))
 }
 
+func (i *Interpreter) VisitClassStmt(stmt *ClassStmt) {
+	i.env.define(stmt.name.lexeme, nil)
+	methods := make(map[string]*LoxFunction)
+	for _, method := range stmt.methods {
+		function := NewLoxFunction(method, i.env, method.name.lexeme == "init")
+		methods[method.name.lexeme] = function
+	}
+	klass := NewLoxClass(stmt.name.lexeme, methods)
+	i.env.assign(stmt.name, klass)
+}
+
 func (i *Interpreter) VisitExpressionStmt(stmt *ExpressionStmt) {
 	i.evaluate(stmt.expression)
 }
 
 func (i *Interpreter) VisitFunctionStmt(stmt *FunctionStmt) {
-	function := NewLoxFunction(stmt, i.env)
+	function := NewLoxFunction(stmt, i.env, false)
 	i.env.define(stmt.name.lexeme, function)
 }
 
@@ -144,6 +155,23 @@ func (i *Interpreter) VisitLogicalExpr(expr *LogicalExpr) interface{} {
 	}
 
 	return i.evaluate(expr.right)
+}
+
+func (i *Interpreter) VisitSetExpr(expr *SetExpr) interface{} {
+	object := i.evaluate(expr.object)
+
+	instance, ok := object.(*LoxInstance)
+	if !ok {
+		panic(NewRuntimeError(expr.name, "Only instances have fields."))
+	}
+
+	value := i.evaluate(expr.value)
+	instance.Set(expr.name, value)
+	return value
+}
+
+func (i *Interpreter) VisitThisExpr(expr *ThisExpr) interface{} {
+	return i.lookUpVariable(expr.keyword, expr)
 }
 
 func (i *Interpreter) VisitGroupingExpr(expr *GroupingExpr) interface{} {
@@ -250,6 +278,15 @@ func (i *Interpreter) VisitCallExpr(expr *CallExpr) interface{} {
 	}
 
 	return function.Call(i, arguments)
+}
+
+func (i *Interpreter) VisitGetExpr(expr *GetExpr) interface{} {
+	object := i.evaluate(expr.object)
+	instance, ok := object.(*LoxInstance)
+	if !ok {
+		panic(NewRuntimeError(expr.name, "Only instances have properties."))
+	}
+	return instance.Get(expr.name)
 }
 
 func (i *Interpreter) isTruthy(obj interface{}) bool {

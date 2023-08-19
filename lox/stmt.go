@@ -14,6 +14,19 @@ func NewBlockStmt(statements []Stmt)*BlockStmt{
 	return b
 }
 
+type ClassStmt struct{
+	name *Token
+	methods []*FunctionStmt
+}
+
+func NewClassStmt(name *Token, methods []*FunctionStmt)*ClassStmt{
+	c := &ClassStmt{
+		name: name,
+		methods: methods,
+	}
+	return c
+}
+
 type ExpressionStmt struct{
 	expression Expr
 }
@@ -107,6 +120,7 @@ func NewWhileStmt(condition Expr, body Stmt)*WhileStmt{
 
 type StmtVisitor interface{
 	VisitBlockStmt(blockstmt *BlockStmt)
+	VisitClassStmt(classstmt *ClassStmt)
 	VisitExpressionStmt(expressionstmt *ExpressionStmt)
 	VisitFunctionStmt(functionstmt *FunctionStmt)
 	VisitIfStmt(ifstmt *IfStmt)
@@ -120,6 +134,8 @@ func VisitorStmt(v StmtVisitor,s Stmt){
 	switch s.(type){
 	case *BlockStmt:
 		v.VisitBlockStmt(s.(*BlockStmt))
+	case *ClassStmt:
+		v.VisitClassStmt(s.(*ClassStmt))
 	case *ExpressionStmt:
 		v.VisitExpressionStmt(s.(*ExpressionStmt))
 	case *FunctionStmt:
@@ -139,6 +155,7 @@ func VisitorStmt(v StmtVisitor,s Stmt){
 
 type StmtVisitorWithVal[T any] interface{
 	VisitBlockStmt(blockstmt *BlockStmt) T
+	VisitClassStmt(classstmt *ClassStmt) T
 	VisitExpressionStmt(expressionstmt *ExpressionStmt) T
 	VisitFunctionStmt(functionstmt *FunctionStmt) T
 	VisitIfStmt(ifstmt *IfStmt) T
@@ -152,6 +169,8 @@ func VisitorStmtWithVal[T any](v StmtVisitorWithVal[T],s Stmt) T{
 	switch s.(type){
 	case *BlockStmt:
 		return v.VisitBlockStmt(s.(*BlockStmt))
+	case *ClassStmt:
+		return v.VisitClassStmt(s.(*ClassStmt))
 	case *ExpressionStmt:
 		return v.VisitExpressionStmt(s.(*ExpressionStmt))
 	case *FunctionStmt:

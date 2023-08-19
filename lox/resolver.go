@@ -9,12 +9,22 @@ type FunctionType int
 const (
 	FunctionType_None FunctionType = iota
 	FunctionType_Function
+	FunctionType_Initializer
+	FunctionType_Method
+)
+
+type ClassType int
+
+const (
+	ClassType_None ClassType = iota
+	ClassType_Class
 )
 
 type Resolver struct {
 	interpreter     *Interpreter
 	scopes          *stack.Stack[map[string]bool]
 	currentFunction FunctionType
+	currentClass    ClassType
 }
 
 func NewResolver(interpreter *Interpreter) *Resolver {
@@ -22,6 +32,7 @@ func NewResolver(interpreter *Interpreter) *Resolver {
 		interpreter:     interpreter,
 		scopes:          stack.New[map[string]bool](),
 		currentFunction: FunctionType_None,
+		currentClass:    ClassType_None,
 	}
 	return r
 }
@@ -71,6 +82,24 @@ func (r *Resolver) VisitBlockStmt(blockstmt *BlockStmt) {
 	r.beginScope()
 	r.resolveStmt(blockstmt.statements)
 	r.endScope()
+}
+
+func (r *Resolver) VisitClassStmt(stmt *ClassStmt) {
+	enclosinngClass := r.currentClass
+	r.currentClass = ClassType_Class
+	r.declare(stmt.name)
+	r.define(stmt.name)
+	r.beginScope()
+	r.scopes.Peek()["this"] = true
+	for _, method := range stmt.methods {
+		declaration := FunctionType_Method
+		if method.name.lexeme == "init" {
+			declaration = FunctionType_Initializer
+		}
+		r.resolveFunction(method, declaration)
+	}
+	r.endScope()
+	r.currentClass = enclosinngClass
 }
 
 func (r *Resolver) VisitVarStmt(varstmt *VarStmt) {
@@ -147,6 +176,9 @@ func (r *Resolver) VisitReturnStmt(returnstmt *ReturnStmt) {
 		reportErrorToken(returnstmt.keyword, "Can't return from top-level code.")
 	}
 	if returnstmt.value != nil {
+		if r.currentFunction == FunctionType_Initializer {
+			reportErrorToken(returnstmt.keyword, "Can't return a value from an initializer.")
+		}
 		r.resolveExpr(returnstmt.value)
 	}
 }
@@ -167,6 +199,9 @@ func (r *Resolver) VisitCallExpr(callexpr *CallExpr) {
 		r.resolveExpr(argument)
 	}
 }
+func (r *Resolver) VisitGetExpr(getexpr *GetExpr) {
+	r.resolveExpr(getexpr.object)
+}
 
 func (r *Resolver) VisitGroupingExpr(groupingexpr *GroupingExpr) {
 	r.resolveExpr(groupingexpr.expression)
@@ -179,6 +214,18 @@ func (r *Resolver) VisitLiteralExpr(literalexpr *LiteralExpr) {
 func (r *Resolver) VisitLogicalExpr(logicalexpr *LogicalExpr) {
 	r.resolveExpr(logicalexpr.left)
 	r.resolveExpr(logicalexpr.right)
+}
+
+func (r *Resolver) VisitSetExpr(setexpr *SetExpr) {
+	r.resolveExpr(setexpr.value)
+	r.resolveExpr(setexpr.object)
+}
+
+func (r *Resolver) VisitThisExpr(thisexpr *ThisExpr) {
+	if r.currentClass == ClassType_None {
+		reportErrorToken(thisexpr.keyword, "Can't use 'this' outside of a class.")
+	}
+	r.resolveLocal(thisexpr, thisexpr.keyword)
 }
 
 func (r *Resolver) VisitUnaryExpr(unaryexpr *UnaryExpr) {
