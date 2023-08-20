@@ -220,3 +220,29 @@ C().test();
 func TestLox13Inheritance2(t *testing.T) {
 	lox.Eval(code13Inheritance2)
 }
+
+const code13Inheritance3 = `
+class Doughnut {
+  init() {
+    this.name = "123";
+	print "Doughnut init\n";
+  }
+  cook() {
+    print "Fry until golden brown.";
+  }
+}
+
+class BostonCream < Doughnut {
+  init() {
+    super.init();
+	print "BostonCream init\n";
+	print this.name;
+  }
+}
+
+BostonCream().cook();
+`
+
+func TestLox13Inheritance3(t *testing.T) {
+	lox.Eval(code13Inheritance3)
+}
