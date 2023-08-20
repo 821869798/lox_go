@@ -18,6 +18,7 @@ type ClassType int
 const (
 	ClassType_None ClassType = iota
 	ClassType_Class
+	ClassType_Subclass
 )
 
 type Resolver struct {
@@ -89,6 +90,17 @@ func (r *Resolver) VisitClassStmt(stmt *ClassStmt) {
 	r.currentClass = ClassType_Class
 	r.declare(stmt.name)
 	r.define(stmt.name)
+	if stmt.superclass != nil {
+		r.currentClass = ClassType_Subclass
+		if stmt.name.lexeme == stmt.superclass.name.lexeme {
+			reportErrorToken(stmt.superclass.name, "A class can't inherit from itself.")
+		}
+		r.resolveExpr(stmt.superclass)
+	}
+	if stmt.superclass != nil {
+		r.beginScope()
+		r.scopes.Peek()["super"] = true
+	}
 	r.beginScope()
 	r.scopes.Peek()["this"] = true
 	for _, method := range stmt.methods {
@@ -99,6 +111,9 @@ func (r *Resolver) VisitClassStmt(stmt *ClassStmt) {
 		r.resolveFunction(method, declaration)
 	}
 	r.endScope()
+	if stmt.superclass != nil {
+		r.endScope()
+	}
 	r.currentClass = enclosinngClass
 }
 
@@ -219,6 +234,15 @@ func (r *Resolver) VisitLogicalExpr(logicalexpr *LogicalExpr) {
 func (r *Resolver) VisitSetExpr(setexpr *SetExpr) {
 	r.resolveExpr(setexpr.value)
 	r.resolveExpr(setexpr.object)
+}
+
+func (r *Resolver) VisitSuperExpr(superexpr *SuperExpr) {
+	if r.currentClass == ClassType_None {
+		reportErrorToken(superexpr.keyword, "Can't use 'super' outside of a class.")
+	} else if r.currentClass != ClassType_Subclass {
+		reportErrorToken(superexpr.keyword, "Can't use 'super' in a class with no superclass.")
+	}
+	r.resolveLocal(superexpr, superexpr.keyword)
 }
 
 func (r *Resolver) VisitThisExpr(thisexpr *ThisExpr) {

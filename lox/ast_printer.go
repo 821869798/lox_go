@@ -63,6 +63,10 @@ func (a *AstPrinter) VisitThisExpr(thisexpr *ThisExpr) string {
 	return a.parenthesize("this", thisexpr.keyword)
 }
 
+func (a *AstPrinter) VisitSuperExpr(superexpr *SuperExpr) string {
+	return a.parenthesize("super", superexpr.method)
+}
+
 func (a *AstPrinter) parenthesize(name string, exprs ...Expr) string {
 	var b strings.Builder
 	b.WriteString("(")

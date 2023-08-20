@@ -67,13 +67,28 @@ func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) {
 }
 
 func (i *Interpreter) VisitClassStmt(stmt *ClassStmt) {
+	var superclass *LoxClass = nil
+	if stmt.superclass != nil {
+		superclass = i.evaluate(stmt.superclass).(*LoxClass)
+		if superclass == nil {
+			panic(NewRuntimeError(stmt.superclass.name, "Superclass must be a class."))
+		}
+	}
+
 	i.env.define(stmt.name.lexeme, nil)
+	if stmt.superclass != nil {
+		i.env = NewEnvironment(i.env)
+		i.env.define("super", superclass)
+	}
 	methods := make(map[string]*LoxFunction)
 	for _, method := range stmt.methods {
 		function := NewLoxFunction(method, i.env, method.name.lexeme == "init")
 		methods[method.name.lexeme] = function
 	}
-	klass := NewLoxClass(stmt.name.lexeme, methods)
+	klass := NewLoxClass(stmt.name.lexeme, superclass, methods)
+	if superclass != nil {
+		i.env = i.env.enclosing
+	}
 	i.env.assign(stmt.name, klass)
 }
 
@@ -168,6 +183,19 @@ func (i *Interpreter) VisitSetExpr(expr *SetExpr) interface{} {
 	value := i.evaluate(expr.value)
 	instance.Set(expr.name, value)
 	return value
+}
+
+func (i *Interpreter) VisitSuperExpr(expr *SuperExpr) interface{} {
+	distance := i.locals[expr]
+
+	superclass := i.env.getAt(distance, "super").(*LoxClass)
+	object := i.env.getAt(distance-1, "this").(*LoxInstance)
+	method := superclass.FindMethod(expr.method.lexeme)
+	if method == nil {
+		panic(NewRuntimeError(expr.method, "Undefined property '"+expr.method.lexeme+"'."))
+	}
+	return method.Bind(object)
+
 }
 
 func (i *Interpreter) VisitThisExpr(expr *ThisExpr) interface{} {

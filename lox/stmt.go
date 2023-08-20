@@ -16,12 +16,14 @@ func NewBlockStmt(statements []Stmt)*BlockStmt{
 
 type ClassStmt struct{
 	name *Token
+	superclass *VariableExpr
 	methods []*FunctionStmt
 }
 
-func NewClassStmt(name *Token, methods []*FunctionStmt)*ClassStmt{
+func NewClassStmt(name *Token, superclass *VariableExpr, methods []*FunctionStmt)*ClassStmt{
 	c := &ClassStmt{
 		name: name,
+		superclass: superclass,
 		methods: methods,
 	}
 	return c

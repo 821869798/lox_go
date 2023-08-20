@@ -111,6 +111,19 @@ func NewSetExpr(object Expr, name *Token, value Expr)*SetExpr{
 	return s
 }
 
+type SuperExpr struct{
+	keyword *Token
+	method *Token
+}
+
+func NewSuperExpr(keyword *Token, method *Token)*SuperExpr{
+	s := &SuperExpr{
+		keyword: keyword,
+		method: method,
+	}
+	return s
+}
+
 type ThisExpr struct{
 	keyword *Token
 }
@@ -155,6 +168,7 @@ type ExprVisitor interface{
 	VisitLiteralExpr(literalexpr *LiteralExpr)
 	VisitLogicalExpr(logicalexpr *LogicalExpr)
 	VisitSetExpr(setexpr *SetExpr)
+	VisitSuperExpr(superexpr *SuperExpr)
 	VisitThisExpr(thisexpr *ThisExpr)
 	VisitUnaryExpr(unaryexpr *UnaryExpr)
 	VisitVariableExpr(variableexpr *VariableExpr)
@@ -178,6 +192,8 @@ func VisitorExpr(v ExprVisitor,e Expr){
 		v.VisitLogicalExpr(e.(*LogicalExpr))
 	case *SetExpr:
 		v.VisitSetExpr(e.(*SetExpr))
+	case *SuperExpr:
+		v.VisitSuperExpr(e.(*SuperExpr))
 	case *ThisExpr:
 		v.VisitThisExpr(e.(*ThisExpr))
 	case *UnaryExpr:
@@ -196,6 +212,7 @@ type ExprVisitorWithVal[T any] interface{
 	VisitLiteralExpr(literalexpr *LiteralExpr) T
 	VisitLogicalExpr(logicalexpr *LogicalExpr) T
 	VisitSetExpr(setexpr *SetExpr) T
+	VisitSuperExpr(superexpr *SuperExpr) T
 	VisitThisExpr(thisexpr *ThisExpr) T
 	VisitUnaryExpr(unaryexpr *UnaryExpr) T
 	VisitVariableExpr(variableexpr *VariableExpr) T
@@ -219,6 +236,8 @@ func VisitorExprWithVal[T any](v ExprVisitorWithVal[T],e Expr) T{
 		return v.VisitLogicalExpr(e.(*LogicalExpr))
 	case *SetExpr:
 		return v.VisitSetExpr(e.(*SetExpr))
+	case *SuperExpr:
+		return v.VisitSuperExpr(e.(*SuperExpr))
 	case *ThisExpr:
 		return v.VisitThisExpr(e.(*ThisExpr))
 	case *UnaryExpr:

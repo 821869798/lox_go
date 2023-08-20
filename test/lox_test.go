@@ -178,3 +178,45 @@ bill.sayName(); // ?
 func TestLox12Class3(t *testing.T) {
 	lox.Eval(code12Class3)
 }
+
+const code13Inheritance1 = `
+class Doughnut {
+  cook() {
+    print "Fry until golden brown.";
+  }
+}
+
+class BostonCream < Doughnut {}
+
+BostonCream().cook();
+`
+
+func TestLox13Inheritance1(t *testing.T) {
+	lox.Eval(code13Inheritance1)
+}
+
+const code13Inheritance2 = `
+class A {
+  method() {
+    print "A method";
+  }
+}
+
+class B < A {
+  method() {
+    print "B method";
+  }
+
+  test() {
+    super.method();
+  }
+}
+
+class C < B {}
+
+C().test();
+`
+
+func TestLox13Inheritance2(t *testing.T) {
+	lox.Eval(code13Inheritance2)
+}

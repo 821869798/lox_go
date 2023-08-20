@@ -26,6 +26,7 @@ func main() {
 		"LiteralExpr  : value interface{}",
 		"LogicalExpr  : left Expr, operator *Token, right Expr",
 		"SetExpr	  : object Expr, name *Token, value Expr",
+		"SuperExpr	  : keyword *Token, method *Token",
 		"ThisExpr     : keyword *Token",
 		"UnaryExpr    : operator *Token, right Expr",
 		"VariableExpr : name *Token",
@@ -33,7 +34,7 @@ func main() {
 
 	defineAst(outputDir, "Stmt", []string{
 		"BlockStmt      : statements []Stmt",
-		"ClassStmt      : name *Token, methods []*FunctionStmt",
+		"ClassStmt      : name *Token, superclass *VariableExpr, methods []*FunctionStmt",
 		"ExpressionStmt : expression Expr",
 		"FunctionStmt   : name *Token, params []*Token, body []Stmt",
 		"IfStmt         : condition Expr, thenBranch Stmt," +

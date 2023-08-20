@@ -1,14 +1,16 @@
 package lox
 
 type LoxClass struct {
-	name    string
-	methods map[string]*LoxFunction
+	name       string
+	methods    map[string]*LoxFunction
+	superclass *LoxClass
 }
 
-func NewLoxClass(name string, methods map[string]*LoxFunction) *LoxClass {
+func NewLoxClass(name string, superclass *LoxClass, methods map[string]*LoxFunction) *LoxClass {
 	l := &LoxClass{
-		name:    name,
-		methods: methods,
+		name:       name,
+		methods:    methods,
+		superclass: superclass,
 	}
 	return l
 }
@@ -38,6 +40,9 @@ func (l *LoxClass) FindMethod(name string) *LoxFunction {
 	method, ok := l.methods[name]
 	if ok {
 		return method
+	}
+	if l.superclass != nil {
+		return l.superclass.FindMethod(name)
 	}
 	return nil
 }
